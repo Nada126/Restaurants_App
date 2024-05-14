@@ -1,315 +1,249 @@
-// // ignore_for_file:  library_private_types_in_public_api, use_build_context_synchronously, unused_element, unused_import
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'home_page.dart';
 
-// import 'dart:io';
+class SignUpResponse {
+  final String message;
+  final bool success;
 
-// import 'package:flutter/material.dart';
-// import 'package:image_picker/image_picker.dart';
-// import 'package:path_provider/path_provider.dart';
-// import 'package:shared_preferences/shared_preferences.dart';
+  SignUpResponse({required this.message, required this.success});
+
+  factory SignUpResponse.fromJson(Map<String, dynamic> json) {
+    return SignUpResponse(
+      message: json['message'],
+      success: json['success'],
+    );
+  }
+}
+
+class SignUpScreen extends StatefulWidget {
+  @override
+  _SignUpScreenState createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+  String? _gender;
+  int? _level;
+  bool _showPassword = false;
+  bool _showConfirmPassword = false;
+
+  Future<void> _submitForm() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        final response = await signUpUser(
+          _nameController.text,
+          _gender ?? '',
+          _emailController.text,
+          _level ?? 0,
+          _passwordController.text,
+        );
+
+        if (response.success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('User signed up successfully!'),
+            ),
+          );
+          // Navigate to the home page after successful sign-up
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()), // Replace HomePage with your actual home page widget
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response.message),
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error signing up user: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An error occurred while signing up. Please try again later.'),
+          ),
+        );
+      }
+    }
+  }
 
 
-// class SignUp extends StatefulWidget {
-//   const SignUp({super.key});
+  Future<SignUpResponse> signUpUser(String name, String gender, String email, int level, String password) async {
+    final url = Uri.parse('http://www.emaproject.somee.com/api/Student/signup');
 
-//   @override
-//   _SignUpPageState createState() => _SignUpPageState();
-// }
+    final response = await http.post(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'name': name,
+        'gender': gender,
+        'email': email,
+        'level': level,
+        'password': password,
+        'confirmPassword': password, // Assuming confirmPassword should be the same as password
+      }),
+    );
 
-// class _SignUpPageState extends State<SignUp> {
-//   final TextEditingController _nameController = TextEditingController();
-//   final TextEditingController _emailController = TextEditingController();
-//   final TextEditingController _studentIdController = TextEditingController();
-//   final TextEditingController _passwordController = TextEditingController();
-//   final TextEditingController _confirmPasswordController =
-//       TextEditingController();
+    if (response.statusCode == 200) {
+      if (response.headers['content-type']?.contains('application/json') ?? false) {
+        final jsonResponse = jsonDecode(response.body);
+        return SignUpResponse.fromJson(jsonResponse);
+      } else {
+        // Handle plain text response
+        return SignUpResponse(message: response.body, success: true);
+      }
+    } else {
+      throw Exception('Failed to sign up user: ${response.body}');
+    }
+  }
 
-//   String? _gender;
-//   String? _level;
-//   File? _imageFile;
 
-//   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
 
-//   Future<String> get _localPath async {
-//     final directory = await getApplicationDocumentsDirectory();
-//     return directory.path;
-//   }
-
-//   Future<Database> _getDatabase() async {
-//     final String path = await _localPath;
-//     return openDatabase(
-//       '$path/user_data.db',
-//       onCreate: (db, version) {
-//         return db.execute(
-//           'CREATE TABLE user_data(id INTEGER PRIMARY KEY, name TEXT, gender TEXT, email TEXT, studentId TEXT, level TEXT, password TEXT, imagePath TEXT)',
-//         );
-//       },
-//       version: 1,
-//     );
-//   }
-
-//   Future<void> _saveUserDataLocally(UserData userData) async {
-//     final Database db = await _getDatabase();
-//     await db.insert(
-//       'user_data',
-//       userData.toMap(),
-//       conflictAlgorithm: ConflictAlgorithm.replace,
-//     );
-//   }
-
-//   Future<void> _saveUserDataToSharedPreferences(UserData userData) async {
-//     final prefs = await SharedPreferences.getInstance();
-//     await prefs.setString('user_name', userData.name);
-//     await prefs.setString('user_email', userData.email);
-//     await prefs.setString('user_studentId', userData.studentId);
-//     await prefs.setString('user_level', userData.level);
-//     await prefs.setString('user_gender', userData.gender);
-//     await prefs.setString('user_password', userData.password);
-//     if (_imageFile != null) {
-//       final String imagePath = await _saveImageFile();
-//       await prefs.setString('user_image', imagePath);
-//     }
-//   }
-
-//   Future<String> _getImagesDirectoryPath() async {
-//     final Directory directory = await getApplicationDocumentsDirectory();
-//     final String imagesDirectoryPath = '${directory.path}/images';
-//     final Directory imagesDirectory =
-//         await Directory(imagesDirectoryPath).create(recursive: true);
-//     return imagesDirectory.path;
-//   }
-
-//   Future<String> _saveImageFile() async {
-//     final String directoryPath = await _getImagesDirectoryPath();
-//     final String filePath = '$directoryPath/user_image.png';
-//     await _imageFile!.copy(filePath);
-//     return filePath;
-//   }
-
-//   Future<void> _submitForm() async {
-//     if (_formKey.currentState!.validate()) {
-//       final String email = _emailController.text;
-//       final bool emailExists = await _checkEmailExists(email);
-
-//       if (emailExists) {
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(
-//             content:
-//                 Text('Email already exists. Please use a different email.'),
-//           ),
-//         );
-//       } else {
-//         final userData = UserData(
-//           name: _nameController.text,
-//           gender: _gender ?? '',
-//           email: email,
-//           studentId: _studentIdController.text,
-//           level: _level ?? '',
-//           password: _passwordController.text,
-//           imagePath: '',
-//         );
-//         await _saveUserDataLocally(userData);
-//         await _saveUserDataToSharedPreferences(userData);
-//         ScaffoldMessenger.of(context).showSnackBar(
-//           const SnackBar(
-//             content: Text('User data saved locally'),
-//           ),
-//         );
-//         Navigator.pushReplacementNamed(context, '/main');
-//       }
-//     }
-//   }
-
-//   Future<bool> _checkEmailExists(String email) async {
-//     final db = await _getDatabase();
-//     final List<Map<String, dynamic>> users = await db.query(
-//       'user_data',
-//       where: 'email = ?',
-//       whereArgs: [email],
-//     );
-//     return users.isNotEmpty;
-//   }
-
-//   // Future<void> _getImage(ImageSource source) async {
-//   //   final pickedFile = await ImagePicker().pickImage(source: source);
-
-//   //   if (pickedFile != null) {
-//   //     setState(() {
-//   //       _imageFile = File(pickedFile.path);
-//   //     });
-//   //   }
-//   // }
-
-//   bool _isPasswordVisible = false;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: const Text('Sign Up'),
-//       ),
-//       body: Padding(
-//         padding: const EdgeInsets.all(16.0),
-//         child: Form(
-//           key: _formKey,
-//           child: SingleChildScrollView(
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.stretch,
-//               children: <Widget>[
-//                 const SizedBox(height: 20),
-//                 TextFormField(
-//                   controller: _nameController,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Name',
-//                     hintText: 'Username',
-//                   ),
-//                   validator: (value) {
-//                     if (value!.isEmpty) {
-//                       return 'Please enter your name';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 const SizedBox(height: 12),
-//                 Row(
-//                   children: <Widget>[
-//                     const Text('Gender:'),
-//                     const SizedBox(width: 12),
-//                     Radio(
-//                       value: 'Male',
-//                       groupValue: _gender,
-//                       onChanged: (value) {
-//                         setState(() {
-//                           _gender = value.toString();
-//                         });
-//                       },
-//                     ),
-//                     const Text('Male'),
-//                     Radio(
-//                       value: 'Female',
-//                       groupValue: _gender,
-//                       onChanged: (value) {
-//                         setState(() {
-//                           _gender = value.toString();
-//                         });
-//                       },
-//                     ),
-//                     const Text('Female'),
-//                   ],
-//                 ),
-//                 TextFormField(
-//                   controller: _emailController,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Email',
-//                     hintText: 'studentID@stud.fci-cu.edu.eg',
-//                   ),
-//                   validator: (value) {
-//                     if (value == null || value.isEmpty) {
-//                       return 'Please enter your email';
-//                     } else if (!RegExp(r'^[a-zA-Z0-9]+@stud\.fci-cu\.edu\.eg$')
-//                         .hasMatch(value)) {
-//                       return 'Not valid FCI email (e.g., studentID@stud.fci-cu.edu.eg)';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 const SizedBox(height: 12),
-//                 TextFormField(
-//                   controller: _studentIdController,
-//                   decoration: const InputDecoration(
-//                     labelText: 'Student ID',
-//                     hintText: '202011',
-//                   ),
-//                   validator: (value) {
-//                     if (value!.isEmpty) {
-//                       return 'Please enter your student ID';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 const SizedBox(height: 12),
-//                 Row(
-//                   children: <Widget>[
-//                     const Text('Level:'),
-//                     const SizedBox(width: 12),
-//                     DropdownButton<String>(
-//                       value: _level,
-//                       onChanged: (value) {
-//                         setState(() {
-//                           _level = value;
-//                         });
-//                       },
-//                       items: <String>['1', '2', '3', '4']
-//                           .map<DropdownMenuItem<String>>((String value) {
-//                         return DropdownMenuItem<String>(
-//                           value: value,
-//                           child: Text(value),
-//                         );
-//                       }).toList(),
-//                     ),
-//                   ],
-//                 ),
-//                 const SizedBox(height: 12),
-//                 TextFormField(
-//                   controller: _passwordController,
-//                   obscureText: !_isPasswordVisible,
-//                   decoration: InputDecoration(
-//                     labelText: 'Password',
-//                     hintText: 'Enter your password',
-//                     suffixIcon: IconButton(
-//                       icon: Icon(_isPasswordVisible
-//                           ? Icons.visibility_off
-//                           : Icons.visibility),
-//                       onPressed: () {
-//                         setState(() {
-//                           _isPasswordVisible = !_isPasswordVisible;
-//                         });
-//                       },
-//                     ),
-//                   ),
-//                   validator: (value) {
-//                     if (value == null || value.isEmpty) {
-//                       return 'Please enter a password';
-//                     } else if (value.length < 8) {
-//                       return 'Password must be at least 8 characters long';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 const SizedBox(height: 12),
-//                 TextFormField(
-//                   controller: _confirmPasswordController,
-//                   obscureText: !_isPasswordVisible,
-//                   decoration: InputDecoration(
-//                     labelText: 'Confirm Password',
-//                     hintText: 'Confirm your password',
-//                     suffixIcon: IconButton(
-//                       icon: Icon(_isPasswordVisible
-//                           ? Icons.visibility_off
-//                           : Icons.visibility),
-//                       onPressed: () {
-//                         setState(() {
-//                           _isPasswordVisible = !_isPasswordVisible;
-//                         });
-//                       },
-//                     ),
-//                   ),
-//                   validator: (value) {
-//                     if (value != _passwordController.text) {
-//                       return 'Passwords do not match';
-//                     }
-//                     return null;
-//                   },
-//                 ),
-//                 const SizedBox(height: 24),
-//                 ElevatedButton(
-//                   onPressed: _submitForm,
-//                   child: const Text('Sign Up'),
-//                 ),
-//               ],
-//             ),
-//           ),
-//         ),
-//       ),
-//     );
-//   }
-// }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Sign Up'),
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                  controller: _nameController,
+                  decoration: InputDecoration(labelText: 'Name'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your name';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _emailController,
+                  decoration: InputDecoration(labelText: 'Email', hintText: 'ex@gmail.com'),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your email';
+                    }
+                    // Email validation regex
+                    String emailRegex = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+                    if (!RegExp(emailRegex).hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
+                    return null;
+                  },
+                ),
+                Row(
+                  children: [
+                    Radio<String>(
+                      value: 'Male',
+                      groupValue: _gender,
+                      onChanged: (value) {
+                        setState(() {
+                          _gender = value;
+                        });
+                      },
+                    ),
+                    Text('Male'),
+                    Radio<String>(
+                      value: 'Female',
+                      groupValue: _gender,
+                      onChanged: (value) {
+                        setState(() {
+                          _gender = value;
+                        });
+                      },
+                    ),
+                    Text('Female'),
+                  ],
+                ),
+                DropdownButtonFormField<int>(
+                  value: _level,
+                  decoration: InputDecoration(labelText: 'Level'),
+                  items: [1, 2, 3, 4].map((int value) {
+                    return DropdownMenuItem<int>(
+                      value: value,
+                      child: Text('Level $value'),
+                    );
+                  }).toList(),
+                  onChanged: (int? value) {
+                    setState(() {
+                      _level = value;
+                    });
+                  },
+                ),
+                TextFormField(
+                  controller: _passwordController,
+                  obscureText: !_showPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(_showPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _showPassword = !_showPassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a password';
+                    }
+                    // Password strength regex
+                    String passwordRegex = r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$';
+                    if (!RegExp(passwordRegex).hasMatch(value)) {
+                      return 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
+                    }
+                    return null;
+                  },
+                ),
+                TextFormField(
+                  controller: _confirmPasswordController,
+                  obscureText: !_showConfirmPassword,
+                  decoration: InputDecoration(
+                    labelText: 'Confirm Password',
+                    suffixIcon: IconButton(
+                      icon: Icon(_showConfirmPassword ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () {
+                        setState(() {
+                          _showConfirmPassword = !_showConfirmPassword;
+                        });
+                      },
+                    ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: _submitForm,
+                  child: Text('Sign Up'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
