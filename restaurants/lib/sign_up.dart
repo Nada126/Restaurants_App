@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'home_page.dart';
+import 'login.dart'; // Import the LoginPage
 
 class SignUpResponse {
   final String message;
@@ -73,7 +74,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-
   Future<SignUpResponse> signUpUser(String name, String gender, String email, int level, String password) async {
     final url = Uri.parse('http://www.emaproject.somee.com/api/Student/signup');
 
@@ -105,13 +105,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sign Up'),
+        title: const Text('Sign Up'),
       ),
       body: SingleChildScrollView(
         child: Padding(
@@ -122,7 +120,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
               children: <Widget>[
                 TextFormField(
                   controller: _nameController,
-                  decoration: InputDecoration(labelText: 'Name'),
+                  decoration: const InputDecoration(labelText: 'Name'),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your name';
@@ -132,13 +130,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 ),
                 TextFormField(
                   controller: _emailController,
-                  decoration: InputDecoration(labelText: 'Email', hintText: 'ex@gmail.com'),
+                  decoration: const InputDecoration(labelText: 'Email', hintText: 'ex@gmail.com'),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
                     }
                     // Email validation regex
-                    String emailRegex = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+                    const emailRegex = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
                     if (!RegExp(emailRegex).hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
@@ -156,7 +154,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         });
                       },
                     ),
-                    Text('Male'),
+                    const Text('Male'),
                     Radio<String>(
                       value: 'Female',
                       groupValue: _gender,
@@ -166,12 +164,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         });
                       },
                     ),
-                    Text('Female'),
+                    const Text('Female'),
                   ],
                 ),
                 DropdownButtonFormField<int>(
                   value: _level,
-                  decoration: InputDecoration(labelText: 'Level'),
+                  decoration: const InputDecoration(labelText: 'Level'),
                   items: [1, 2, 3, 4].map((int value) {
                     return DropdownMenuItem<int>(
                       value: value,
@@ -203,7 +201,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       return 'Please enter a password';
                     }
                     // Password strength regex
-                    String passwordRegex = r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$';
+                    const passwordRegex = r'^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[!@#\$&*~]).{8,}$';
                     if (!RegExp(passwordRegex).hasMatch(value)) {
                       return 'Password must be at least 8 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character';
                     }
@@ -234,10 +232,20 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     return null;
                   },
                 ),
-                SizedBox(height: 20),
+                const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: _submitForm,
-                  child: Text('Sign Up'),
+                  child: const Text('Sign Up'),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => LoginPage()), // Navigate to LoginPage
+                    );
+                  },
+                  child: const Text('Already have an account? Sign in'),
                 ),
               ],
             ),

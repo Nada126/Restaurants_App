@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-
+import 'product_page.dart';
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -70,7 +70,12 @@ class _HomePageState extends State<HomePage> {
         subtitle: Text(category),
         leading: imagePath != null ? Image.network(imagePath) : null,
         onTap: () {
-          // Handle tap on the card
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductPage(placeName: name),
+            ),
+          );
         },
       ),
     );
