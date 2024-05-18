@@ -23,7 +23,8 @@ class _ProductPageState extends State<ProductPage> {
   void _fetchProducts() async {
     try {
       final response = await http.get(
-        Uri.parse('http://www.emaproject.somee.com/api/Product/${Uri.encodeComponent(widget.placeName)}/products'),
+        Uri.parse(
+            'http://www.emaproject.somee.com/api/Product/${Uri.encodeComponent(widget.placeName)}/products'),
       );
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -44,24 +45,11 @@ class _ProductPageState extends State<ProductPage> {
     }
   }
 
-  void _showSearch() {
-    showSearch(
-      context: context,
-      delegate: CustomSearchDelegate(),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.placeName} Products'),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.search),
-            onPressed: _showSearch,
-          ),
-        ],
       ),
       body: Container(
         color: Colors.white,
@@ -79,7 +67,8 @@ class _ProductPageState extends State<ProductPage> {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, String name, String? imagePath) {
+  Widget _buildProductCard(
+      BuildContext context, String name, String? imagePath) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(
@@ -88,109 +77,34 @@ class _ProductPageState extends State<ProductPage> {
       child: ListTile(
         title: Text(name),
         leading: imagePath != null ? Image.network(imagePath) : null,
+        onTap: () {
+          // Navigate to ProductDetailsPage when tapped
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProductDetailsPage(productName: name),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
-class CustomSearchDelegate extends SearchDelegate<String> {
-  String errorMessage = '';
+class ProductDetailsPage extends StatelessWidget {
+  final String productName;
+
+  ProductDetailsPage({required this.productName});
 
   @override
-  ThemeData appBarTheme(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    return theme.copyWith(
-      scaffoldBackgroundColor: const Color.fromARGB(255, 21, 82, 113),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Color.fromARGB(140, 21, 82, 113),
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(productName),
+      ),
+      body: Center(
+        child: Text('Product Details'),
       ),
     );
-  }
-
-  @override
-  List<Widget> buildActions(BuildContext context) {
-    return [IconButton(icon: Icon(Icons.clear), onPressed: () => query = '')];
-  }
-
-  @override
-  Widget buildLeading(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.arrow_back),
-      onPressed: () {
-        close(context, '');
-      },
-    );
-  }
-
-  @override
-  Widget buildResults(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _searchProducts(query),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return Center(child: Text('No results found'));
-        } else {
-          final places = snapshot.data!;
-          return ListView.builder(
-            itemCount: places.length,
-            itemBuilder: (BuildContext context, int index) {
-              return ListTile(
-                title: Text(places[index]['placeName']),
-                subtitle: Text(places[index]['category']),
-                leading: places[index]['imagePath'] != null
-                    ? Image.network(places[index]['imagePath'])
-                    : null,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProductPage(placeName: places[index]['placeName']),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        }
-      },
-    );
-  }
-
-  @override
-  Widget buildSuggestions(BuildContext context) {
-    return Center(
-      child: Text('Suggestions for "$query"'),
-    );
-  }
-
-  Future<List<Map<String, dynamic>>> _searchProducts(String query) async {
-    try {
-      final response = await http.get(
-        Uri.parse('http://www.emaproject.somee.com/api/Product/${Uri.encodeComponent(query)}/searchByProduct'),
-      );
-      if (response.statusCode == 200) {
-        final List<dynamic> data = json.decode(response.body);
-        print('Search response data: $data'); // Debug print
-        return data.map<Map<String, dynamic>>((place) {
-          return {
-            'placeName': place['placeName'],
-            'category': place['category'],
-            'imagePath': place['placeImage'],
-          };
-        }).toList();
-      } else {
-        print('Failed to search products: ${response.statusCode}');
-        errorMessage = 'Failed to search products';
-        return [];
-      }
-    } catch (e) {
-      print('Error searching products: $e');
-      errorMessage = 'Error searching products: $e';
-      return [];
-    }
   }
 }
