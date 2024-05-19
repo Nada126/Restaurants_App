@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:restaurants/search_results.dart';
 import 'dart:convert';
 import 'product_page.dart';
+import 'search_results.dart'; // Import the search_results.dart file
 
 class HomePage extends StatefulWidget {
   @override
@@ -12,9 +12,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Map<String, dynamic>> places = [];
   List<String> products = [];
-  List<dynamic> searchResults = [];
   String selectedProduct = '';
-  TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -69,7 +67,8 @@ class _HomePageState extends State<HomePage> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => SearchResultsPage(searchResults: data),
+            builder: (context) => SearchResultsPage(
+                product: product), // Pass the product data here
           ),
         );
       } else {
@@ -79,7 +78,7 @@ class _HomePageState extends State<HomePage> {
       print('Error fetching search results: $e');
       // Handle error - Display a snackbar, toast message, or dialog
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text('Failed to fetch search results. Please try again.'),
         ),
       );
@@ -97,7 +96,8 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               showSearch(
                 context: context,
-                delegate: ProductSearch(products),
+                delegate:
+                    ProductSearch(products: products), // Pass products here
               ).then((value) {
                 if (value != null) {
                   setState(() {
@@ -113,26 +113,14 @@ class _HomePageState extends State<HomePage> {
       body: Container(
         color: Colors.white,
         child: ListView.builder(
-          itemCount:
-              searchResults.length > 0 ? searchResults.length : places.length,
+          itemCount: places.length,
           itemBuilder: (BuildContext context, int index) {
-            if (searchResults.length > 0) {
-              // Display search results
-              return _buildSearchResultCard(
-                context,
-                searchResults[index]['placeName'],
-                searchResults[index]['category'],
-                searchResults[index]['placeImage'],
-              );
-            } else {
-              // Display regular place cards
-              return _buildCard(
-                context,
-                places[index]['name'],
-                places[index]['category'],
-                places[index]['imagePath'],
-              );
-            }
+            return _buildCard(
+              context,
+              places[index]['name'],
+              places[index]['category'],
+              places[index]['imagePath'],
+            );
           },
         ),
       ),
@@ -163,33 +151,10 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-Widget _buildSearchResultCard(
-    BuildContext context, String name, String category, String? imagePath) {
-  return Card(
-    elevation: 3,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(10.0),
-    ),
-    child: ListTile(
-      title: Text(name),
-      subtitle: Text(category),
-      leading: imagePath != null ? Image.network(imagePath) : null,
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ProductPage(placeName: name),
-          ),
-        );
-      },
-    ),
-  );
-}
-
 class ProductSearch extends SearchDelegate<String> {
   final List<String> products;
 
-  ProductSearch(this.products);
+  ProductSearch({required this.products}); // Corrected the constructor
 
   @override
   List<Widget> buildActions(BuildContext context) {
