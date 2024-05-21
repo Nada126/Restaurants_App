@@ -37,11 +37,14 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Future<void> _submitForm() async {
     if (_formKey.currentState!.validate()) {
       try {
+        // Set _level to 4 if it is null
+        final level = _level ?? 4;
+
         final response = await signUpUser(
           _nameController.text,
           _gender ?? '',
           _emailController.text,
-          _level ?? 0,
+          level,
           _passwordController.text,
         );
 
@@ -74,7 +77,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
     }
   }
 
-  Future<SignUpResponse> signUpUser(String name, String gender, String email, int level, String password) async {
+  Future<SignUpResponse> signUpUser(String name, String gender, String email, int? level, String password) async {
     final url = Uri.parse('http://www.emaproject.somee.com/api/Student/signup');
 
     final response = await http.post(
@@ -135,10 +138,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter your email';
                     }
-                    // Email validation regex
-                    const emailRegex = r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$';
+                    // Updated email validation regex
+                    const emailRegex = r'^[\w-\.]+@stud\.fci-cu\.edu\.eg$';
                     if (!RegExp(emailRegex).hasMatch(value)) {
-                      return 'Please enter a valid email';
+                      return 'Please enter a valid email ending with @stud.fci-cu.edu.eg';
                     }
                     return null;
                   },
@@ -167,13 +170,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
                     const Text('Female'),
                   ],
                 ),
-                DropdownButtonFormField<int>(
+                DropdownButtonFormField<int?>(
                   value: _level,
                   decoration: const InputDecoration(labelText: 'Level'),
-                  items: [1, 2, 3, 4].map((int value) {
-                    return DropdownMenuItem<int>(
+                  items: [null, 1, 2, 3, 4].map((int? value) {
+                    return DropdownMenuItem<int?>(
                       value: value,
-                      child: Text('Level $value'),
+                      child: value != null ? Text('Level $value') : const Text('Select a level'),
                     );
                   }).toList(),
                   onChanged: (int? value) {
@@ -181,6 +184,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _level = value;
                     });
                   },
+
                 ),
                 TextFormField(
                   controller: _passwordController,
@@ -255,3 +259,4 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 }
+
